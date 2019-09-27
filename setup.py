@@ -24,4 +24,4 @@ setuptools.setup(name = "py_menu",
                  url = "https://github.com/SyntaxVoid/py_menu",
                  packages = setuptools.find_packages(),
                  classifiers = classifiers,
-                 python_requires = ">3.0")
+                 python_requires = ">=3")
