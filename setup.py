@@ -12,16 +12,18 @@ except:
 classifiers = ["Programming Language :: Python :: 3",
                "License :: OSI Approved :: MIT License",
                "Operating System :: OS Independent",
-               "Development Status :: 1 - Planning"]
+               "Development Status :: 4 - Beta"]
 
 setuptools.setup(name = "py_menu",
-                 version = "0.0.2",
+                 version = "1.0.0",
                  author = "John Gresl",
                  author_email = "j.gresl12@gmail.com",
                  description = "Command-line driven menu interface in python",
                  long_description = long_description,
                  long_description_content_type = "text/markdown",
                  url = "https://github.com/SyntaxVoid/py_menu",
-                 packages = setuptools.find_packages(),
+                 packages = ["py_menu"],
+                 package_dir = {"py_menu": "py_menu"},
+                 package_data = {"py_menu": ["examples/*"]},
                  classifiers = classifiers,
-                 python_requires = ">=3")
+                 python_requires = ">=2.7")

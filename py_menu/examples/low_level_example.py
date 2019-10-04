@@ -1,61 +1,3 @@
-# py_menu
-
-py_menu is an easily configurable python API for creating command-line-based menu interfaces. This package is intended to be used on any python version >= 2.7.
-
-### Installation
-Installation is simple! Activate your prefered python environment, if you want, and then run:
-```sh
-python -m pip install upgrade py_menu
-```
-
-Once installed, you can `import py_menu` anywhere!
-
-### Getting Started
-There should be several examples in the `py_menu/py_menu/examples` directory that you can run. If you wanted to run `low_level_example.py`, then simply open a python interpretter and enter:
-```python
-import py_menu.examples.low_level_example
-```
-You will immediately see an example Date/Time menu:
-```
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-          ~!~ Date/Time example of py_menu ~!~
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Date/Time Menu
-     1. Time Information
-     2. Date Information
-     q. Quit program
->>
-```
-
-Play around, but the interface here is pretty self explanatory. 
-
-### Included Classes
-The py_menu API exposes two classes available for use by the developer: Option and Menu. Options are used as entries to a larger Menu whereas the Menu is displayed to the user.
-
-#### Option
-Usage: `Option(name, action[, flags])`:
-* `name`: type `str` - The name of the option. This will be displayed.
-* `action`: callable or type `Menu` - The action to take when this option is selected. If it is a callable, it will be `__call__`-ed. If it is a `Menu` object, control will be transfered to this `Menu` and whatever the current `Menu` was will be set as the previous `Menu`. [This is an implementation detail in `Menu`!!!]
-* `flags`: Not implemented for the base `Option` and `Menu` classes. The definition of flags can be set by whoever inherits from Option or Menu.
-
-```python
-opt1 = Option("This is Option1", action = lambda: print("Hello!"))
-```
-
-#### Menu
-Usage: `Menu(header, [options=None, splash=""]):`
-* `heade`r: type `str` - The message to be displayed at the top of the menu.
-* `options`: `[Option]` - A list of Option objects to be displayed.
-* `splash`: type `str` - A single message to display when mainloop begins. For nested Menu objects, the splash message will ONLY be printed for the initial object that calls mainloop. 
-
-```python
-menu1 = Menu("Pick an option!", [opt1], splash = "Welcome to the Menu!")
-```
-
-
-#### Full Example
-This is from `low_level_example.py`
-```python
 """
 For this example, we'll be creating a very basic menu capable of displaying
 the date and time information. This is a LOW_LEVEL implementation. This example
@@ -123,11 +65,3 @@ main_menu = Menu("Date/Time Menu", main_options, splash)
 
 # And then to run our Menu, we call the mainloop method!
 main_menu.mainloop()
-
-```
-
-# Development
-
-Want to contribute? Great!
-
-Feel free to fork and create a pull request! I don't bite! 
