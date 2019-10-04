@@ -5,7 +5,7 @@ py_menu is an easily configurable python API for creating command-line-based men
 ### Installation
 Installation is simple! Activate your prefered python environment, if you want, and then run:
 ```sh
-python -m pip install upgrade py_menu
+python -m pip install py_menu
 ```
 
 Once installed, you can `import py_menu` anywhere!
