@@ -2,24 +2,24 @@ import sys
 import os
 import textwrap
 
-try:                             # msvrct.getch is exclusive to windows, but
-    from msvrct import getch     # its effects can be emulated in *nix. If
-except ImportError:              # there are any problems setting getch, it
-    try:                         # will default to 'input'.
-        import tty, termios
-        def getch():
-            fd = sys.stdin.fileno()
-            old = termios.tcgetattr(fd)
-            try:
-                tty.setraw(fd)
-                ch = sys.stdin.read(1)
-            finally:
-                termios.tcsetattr(fd, termios.TCSADRAIN, old)
-            return ch
-    except:
-        getch = input
-except:
+try:                           # msvrct.getch is exclusive to windows, but
+  from msvrct import getch     # its effects can be emulated in *nix. If
+except ImportError:            # there are any problems setting getch, it
+  try:                         # will default to 'input'.
+    import tty, termios
+      def getch():
+        fd = sys.stdin.fileno()
+        old = termios.tcgetattr(fd)
+        try:
+          tty.setraw(fd)
+          ch = sys.stdin.read(1)
+        finally:
+          termios.tcsetattr(fd, termios.TCSADRAIN, old)
+        return ch
+  except:
     getch = input
+except:
+  getch = input
 
 
 def print2(*s, sep=" ", end="\n", file=sys.stdout, flush=True, n=60, spaces=0):
