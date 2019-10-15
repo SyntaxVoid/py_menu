@@ -16,7 +16,7 @@ classifiers = ["Programming Language :: Python :: 3",
                "Environment :: Console"]
 
 setuptools.setup(name = "py_menu",
-                 version = "1.0.2",
+                 version = "1.1.0",
                  author = "John Gresl",
                  author_email = "j.gresl12@gmail.com",
                  description = "Command-line driven menu interface in python",
