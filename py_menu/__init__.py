@@ -24,8 +24,8 @@ except ImportError:              # there are any problems setting getch, it
       finally:
         termios.tcsetattr(file_desc, termios.TCSADRAIN, old_attr)
       return ch
-    except:
-      pass
+  except:
+    pass
 except:
   pass
 
