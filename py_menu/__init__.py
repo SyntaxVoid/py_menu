@@ -173,9 +173,9 @@ class Menu(object):
     self._splash_shown = False
     self.valid_options = []
     try:
-      self.flag_description = self.DEFAULT_OPTION_CLASS.FLAG_DESCRIPTIONS
+      self.flag_descriptions = self.DEFAULT_OPTION_CLASS.FLAG_DESCRIPTIONS
     except:
-      self.flag_description = ""
+      self.flag_descriptions = ""
     return
 
   def __str__(self):
@@ -283,6 +283,7 @@ class Menu(object):
     if indent_level == 1:
       out += base + "\n"
     if indent_level == 0:
-      out += "\n --- Flag Descriptions (Can be added together) ---\n"
-      out += self.flag_descriptions
+      if self.flag_descriptions:
+        out += "\n --- Flag Descriptions (Can be added together) ---\n"
+        out += self.flag_descriptions
     return out
