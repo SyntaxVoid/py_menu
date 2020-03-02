@@ -62,15 +62,18 @@ def print2(*s, sep=" ", end="\n", file=sys.stdout, flush=True, n=60, spaces=0):
   """
   for m, obj in enumerate(s, 1):
     obj = str(obj) # In case it isn't already a string
-    original_lines = obj.splitlines()
+    original_lines = obj.split("\n")
     output_lines = []
     for line in original_lines:
       if line == "":
         output_lines += [""]
       else:
-        output_lines += textwrap.wrap(line, width=n - spaces)
+        output_lines += textwrap.wrap(line, width=n-spaces)
     to_print = " "*spaces + ("\n" + " "*spaces).join(output_lines)
-    print(to_print, end=sep if m != len(s) else end, file=file, flush=flush)
+    if obj.endswith("\n"):
+      to_print += "\n"
+    print(to_print, end=sep if m != len(s) else "", file=file, flush=flush)
+  print(end=end)
   return
 
 
@@ -130,6 +133,9 @@ class Option(object):
     self.action = action
     self.flags = flags
     return
+  
+  def __str__(self):
+    return f"{self.name} [flags={self.flags}]"
 
 
 class Menu(object):
@@ -143,6 +149,7 @@ class Menu(object):
   One common feature may be to override the __str__ method to implement
   handling project-specific flags from the Option class.
   """
+  DEFAULT_OPTION_CLASS = Option
   def __init__(self, header, options=None, splash="", ):
     """
     Initializer for Menu objects. Provides an easily adaptable framework for
@@ -165,6 +172,10 @@ class Menu(object):
     self.splash = splash
     self._splash_shown = False
     self.valid_options = []
+    try:
+      self.flag_description = self.DEFAULT_OPTION_CLASS.FLAG_DESCRIPTIONS
+    except:
+      self.flag_description = ""
     return
 
   def __str__(self):
@@ -215,7 +226,13 @@ class Menu(object):
       if isinstance(self.active_menu.options[choice].action, Menu):
         self.active_menu = self.active_menu.options[choice].action
       elif hasattr(self.active_menu.options[choice].action, "__call__"):
-        self.active_menu.options[choice].action.__call__()
+        try:
+          result = self.active_menu.options[choice].action.__call__()
+        except KeyboardInterrupt:
+          print2("\nAction was aborted by the user")
+        else:
+          if isinstance(result, str) and result.lower() == "q":
+            continue
         any_key_to_continue()
     return
 
@@ -231,12 +248,41 @@ class Menu(object):
              arguments for Option)
     """
     if len(args) == 2 or len(args) == 3:
-      _opt = Option(*args)
-    elif len(args) == 1 and isinstance(args[0], Option):
+      _opt = self.DEFAULT_OPTION_CLASS(*args)
+    elif len(args) == 1 and isinstance(args[0], self.DEFAULT_OPTION_CLASS):
       _opt = args[0]
+    else:
+      raise TypeError("The option must be arguments for the option "\
+                     f"constructor or of type '{self.DEFAULT_OPTION_CLASS}'.")
     if isinstance(_opt.action, Menu):
       _opt.action.prev_menu = self.active_menu
     elif not hasattr(_opt.action, "__call__"):
       raise TypeError("The action of each option must either be a Menu or "\
                         "be __call__-able.")
     self.options.append(_opt)
+
+  def pretty_menu(self, indent_level=0, __menu_cache=None):
+    """ 
+    Creates a pretty version of the menu. Catches and handles circular menu
+    dependencies before they become a problem.
+    """
+    __menu_cache = [] if __menu_cache is None else __menu_cache
+    out = ""
+    base = " |"
+    level = "         |"
+    for n, option in enumerate(self.options, start=1):
+      if n == 1 and indent_level != 0:
+        start = base + level*(indent_level - 1) + "     "
+        out += start + ">---|" + f"{n:2d}. {str(option)}\n"
+      else:
+        start = base + level*(indent_level)
+        out += start + f"{n:2d}. {str(option)}\n"
+      if isinstance(option.action, Menu) and option.action not in __menu_cache:
+        __menu_cache.append(option.action)
+        out += option.action.pretty_menu(indent_level+1, __menu_cache)  
+    if indent_level == 1:
+      out += base + "\n"
+    if indent_level == 0:
+      out += "\n --- Flag Descriptions (Can be added together) ---\n"
+      out += self.flag_descriptions
+    return out
