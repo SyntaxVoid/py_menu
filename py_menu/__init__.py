@@ -15,14 +15,17 @@ except ImportError:              # there are any problems setting getch, it
     import tty
     import termios
     def getch():
-      """ Will get one character from user without displaying it """
-      file_desc = sys.stdin.fileno()
-      old_attr = termios.tcgetattr(fd)
       try:
-        tty.setraw(file_desc)
-        _ = sys.stdin.read(1)
-      finally:
-        termios.tcsetattr(file_desc, termios.TCSADRAIN, old_attr)
+        """ Will get one character from user without displaying it """
+        file_desc = sys.stdin.fileno()
+        old_attr = termios.tcgetattr(fd)
+        try:
+          tty.setraw(file_desc)
+          _ = sys.stdin.read(1)
+        finally:
+          termios.tcsetattr(file_desc, termios.TCSADRAIN, old_attr)
+      except NameError:
+        ch = input()
       return ch
   except:
     pass
