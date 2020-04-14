@@ -17,7 +17,7 @@ except ImportError:              # there are any problems setting getch, it
     def getch():
       """ Will get one character from user without displaying it """
       file_desc = sys.stdin.fileno()
-      old_attr = termios.tcgetattr(fd)
+      old_attr = termios.tcgetattr(file_desc)
       try:
         tty.setraw(file_desc)
         _ = sys.stdin.read(1)
