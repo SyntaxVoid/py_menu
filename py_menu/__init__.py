@@ -8,13 +8,13 @@ import textwrap
 
 
 getch = input # default, overwrite it below if possible.
-try:                             # msvrct.getch is exclusive to windows, but
+try:                           # msvrct.getch is exclusive to windows, but
   from msvcrt import getch     # its effects can be emulated in *nix. If
-except ImportError:              # there are any problems setting getch, it
+except ImportError:            # there are any problems setting getch, it
   try:                         # will default to 'input'.
     import tty
     import termios
-    def getch():
+    def getch(): # pylint: disable=function-redefined
       """ Will get one character from user without displaying it """
       file_desc = sys.stdin.fileno()
       old_attr = termios.tcgetattr(file_desc)
@@ -114,28 +114,68 @@ def any_key_to_continue(msg=" --- Press any key to continue --- "):
 
 class Option(object):
   """ Small class to help represent an 'Option' for a 'Menu' """
-  def __init__(self, name, action, flags=0):
+  
+  """
+  The following can be used in place of the 'action' parameter when 
+  constructing an Option. A Menu instance can (read: should) use these to 
+  control how the Menu responds when the user uses these actions.
+  
+  The word "should" is used because it is up to the Menu class (or subclass)
+  to implement these behaviors.
+  """
+  GO_TO_MAIN = 1 # Should go to the main menu
+  EXIT = 0 # Should exit the menu loop
+  GO_UP1 = -1 # Should go up 1 menu
+  GO_UP2 = -2 # Should go up 2 menus
+  GO_UP3 = -3 # Should go up 3 menus
+  GO_UP4 = -4 # Should go up 4 menus
+  GO_UP5 = -5 # Should go up 5 menus
+  GO_UP6 = -6 # If you've gotten to this point, I'm a little scared...
+  # Pass any other negative number as 'action' to go up that many menus
+
+  def __init__(self, name, action, pause_after_completion=True, flags=0):
     """
     Initializes an Option object. This will be displayed by Menu.
 
     Inputs:
       name: str - The name of the option. This will be displayed
-      action: callable or Menu object - The action to take when this option is
+      action: callable, Menu, or int - The action to take when this option is
               selected. If it is a callable, it will be __call__-ed. If it is a
               Menu object, control will be transfered to this Menu and whatever
-              the current Menu was will be set as the previous menu.
-              [This is an implementation detail in Menu!!!]
+              the current Menu was will be set as the previous menu. If it is
+              1, the program should return to the toplevel menu. If it is 0, it 
+              will quit the menu loop entirely.If it is a negative integer, the
+              Menu should try to go up that many menus.
+              
+              Having the __call__-able object return the literal string "break"
+              will cause the menu to exit.
+
+              These are implementation features of Menu/its subclasses
+      
+      pause_after_completion: bool - Whether or not to pause after an action
+                              has been completed
       flags: Not implemented for the base Option and Menu classes. The
              definition of flags can be set by whoever inherits from Option
              or Menu.
     """
     self.name = name
-    self.action = action
+    # We only want to accept an action if *any* of the following are true:
+    #   1. action is callable
+    #   2. action is a Menu or a subclass of Menu
+    #   3. action is a non-positive integer
+    if (  hasattr(action, "__call__") \
+        or isinstance(action, Menu) \
+        or (isinstance(action, int) and action <= 1)):
+      self.action = action
+    else:
+      raise TypeError("Action must either be callable, a Menu instance, or a "\
+                     +"non-positive integer!")
     self.flags = flags
+    self.pause_after_completion = pause_after_completion
     return
   
   def __str__(self):
-    return f"{self.name} [flags={self.flags}]"
+    return f"{self.name}"
 
 
 class Menu(object):
@@ -150,7 +190,8 @@ class Menu(object):
   handling project-specific flags from the Option class.
   """
   DEFAULT_OPTION_CLASS = Option
-  def __init__(self, header, options=None, splash="", ):
+  def __init__(self, header, options=None, splash="", 
+               on_quit_message="", show_quit_at_toplevel=True):
     """
     Initializer for Menu objects. Provides an easily adaptable framework for
     creating command-line-interface menus.
@@ -161,17 +202,23 @@ class Menu(object):
       splash: str - A single message to display when mainloop begins. For
               nested Menu objects, the splash message will ONLY be printed
               for the initial object that calls mainloop.
+      on_quit_message: str - A message to display when the user quits from the
+                       toplevel menu. Setting this for a non-toplevel menu has
+                       no effect.
+      show_quit_at_toplevel: bool - Whether or not to display a "Quit Program"
+                             option at the toplevel menu.
     """
     self.header = header
     self.active_menu = self
     self.prev_menu = None
-    self.options = []
+    self.options = [] # This gets populated within add_option in the for loop
     options = [] if options is None else options
     for option in options:
       self.add_option(option) # This is where self.options is built
     self.splash = splash
-    self._splash_shown = False
-    self.valid_options = []
+    self._splash_shown = False # True if splash has been shown. False otherwise
+    self.on_quit_message = on_quit_message
+    self.show_quit_at_toplevel = show_quit_at_toplevel
     try:
       self.flag_descriptions = self.DEFAULT_OPTION_CLASS.FLAG_DESCRIPTIONS
     except:
@@ -185,12 +232,23 @@ class Menu(object):
     q_str = "     q. {msg}\n"
     for option_num, option in enumerate(self.active_menu.options, start=1):
       out += opt_str.format(option_num=option_num, option_name=option.name)
-      self.valid_options.append(str(option_num))
     if self.active_menu.prev_menu is None:
-      out += q_str.format(msg="Quit program")
+      if self.show_quit_at_toplevel: # Don't merge these two ifs!^
+        out += q_str.format(msg="Quit program")
     else:
       out += q_str.format(msg="Previous menu")
-    self.valid_options.append("q")
+    return out
+
+  @property
+  def valid_options(self):
+    out = []
+    for i in range(len(self.active_menu.options)):
+      out.append(str(i+1))
+    if self.active_menu.prev_menu is None:
+      if self.show_quit_at_toplevel:
+        out.append("q")
+    else:
+      out.append("q")
     return out
 
   def get_choice(self):
@@ -216,24 +274,52 @@ class Menu(object):
     while True:
       print2(self)
       choice = self.get_choice()
+      # Handle the special "q" cases
       if choice == "q":
-        if self.active_menu.prev_menu is None:
-          print2("Goodbye! ;)")
+        if self.active_menu.prev_menu is None: # If at the top-level
+          print2(self.on_quit_message)
           return
         self.active_menu = self.active_menu.prev_menu
         continue
       choice = int(choice) - 1 # -1 to match 0-based indexing
-      if isinstance(self.active_menu.options[choice].action, Menu):
-        self.active_menu = self.active_menu.options[choice].action
-      elif hasattr(self.active_menu.options[choice].action, "__call__"):
+      
+      # Handle the special Option.EXIT case
+      action = self.get_action(choice)
+      if action == Option.EXIT:
+        print2(self.on_quit_message)
+        return
+      
+      # Handle the special Option.GO_TO_MAIN case.
+      if isinstance(action, int) and action == Option.GO_TO_MAIN:
+        while self.active_menu.prev_menu is not None:
+          self.active_menu = self.active_menu.prev_menu
+
+
+      # Handle the special Option.GO_UPn cases. Will try to go up as many
+      # levels as requested. If the toplevel menu is reached, it will 
+      # stop trying to go up levels and will remain at the toplevel.
+      if isinstance(action, int) and action < 0:
+        for _level in range(-action):
+          if self.active_menu.prev_menu is not None: # If not toplevel
+            self.active_menu = self.active_menu.prev_menu
+          else:
+            break
+
+      if isinstance(action, Menu):
+        self.active_menu = action
+      elif hasattr(action, "__call__"):
         try:
-          result = self.active_menu.options[choice].action.__call__()
+          result = action.__call__()
+          if result == "break":
+            # When a method returns 'break', we should exit the menu
+            return
         except KeyboardInterrupt:
           print2("\nAction was aborted by the user")
         else:
-          if isinstance(result, str) and result.lower() == "q":
+          if isinstance(result, str) and result.lower() == "q": 
             continue
-        any_key_to_continue()
+        if self.get_option(choice).pause_after_completion:
+          any_key_to_continue()
     return
 
   def add_option(self, *args):
@@ -247,8 +333,9 @@ class Menu(object):
       *args: Either one Option or 'name, action, flags' (the construction
              arguments for Option)
     """
-    if len(args) == 2 or len(args) == 3:
-      _opt = self.DEFAULT_OPTION_CLASS(*args)
+    if len(args) in (2,3,4):
+      # pylint: disable=no-value-for-parameter
+      _opt = self.DEFAULT_OPTION_CLASS(*args) 
     elif len(args) == 1 and isinstance(args[0], self.DEFAULT_OPTION_CLASS):
       _opt = args[0]
     else:
@@ -256,9 +343,6 @@ class Menu(object):
                      f"constructor or of type '{self.DEFAULT_OPTION_CLASS}'.")
     if isinstance(_opt.action, Menu):
       _opt.action.prev_menu = self.active_menu
-    elif not hasattr(_opt.action, "__call__"):
-      raise TypeError("The action of each option must either be a Menu or "\
-                        "be __call__-able.")
     self.options.append(_opt)
 
   def pretty_menu(self, indent_level=0, __menu_cache=None):
@@ -282,8 +366,27 @@ class Menu(object):
         out += option.action.pretty_menu(indent_level+1, __menu_cache)  
     if indent_level == 1:
       out += base + "\n"
-    if indent_level == 0:
+    elif indent_level == 0:
       if self.flag_descriptions:
         out += "\n --- Flag Descriptions (Can be added together) ---\n"
         out += self.flag_descriptions
+    else:
+      start = base + level*(indent_level - 1) + "     "
+      out += start + "\n"
     return out
+
+  def get_option(self, choice):
+    """
+    Returns the option for the given choice. If the choice is invalid, will
+    either raise TypeError (choice is not an int) or IndexError (out of range).
+    """
+    return self.active_menu.options[choice]
+
+  def get_action(self, choice):
+    """
+    Returns the action for the given choice. If choice is invalid, will either
+    raise TypeError (choice is not an int) or IndexError (out of range).
+    """
+    return self.get_option(choice).action
+
+  
