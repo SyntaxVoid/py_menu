@@ -38,16 +38,16 @@ print(main_menu.pretty_menu())
 
 # Output below
 """
- | 1. Time Information [flags=0]
- |     >---| 1. Display Current Hour [flags=0]
- |         | 2. Display Current Minute [flags=0]
- |         | 3. Display Current Second [flags=0]
- |         | 4. Display Current Time [flags=0]
+ | 1. Time Information
+ |     >---| 1. Display Current Hour
+ |         | 2. Display Current Minute
+ |         | 3. Display Current Second
+ |         | 4. Display Current Time
  |
- | 2. Date Information [flags=0]
- |     >---| 1. Display Current Month [flags=0]
- |         | 2. Display Current Day [flags=0]
- |         | 3. Display Current Year [flags=0]
- |         | 4. Display Current Date [flags=0]
+ | 2. Date Information
+ |     >---| 1. Display Current Month
+ |         | 2. Display Current Day
+ |         | 3. Display Current Year
+ |         | 4. Display Current Date
  |
 """
